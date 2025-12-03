@@ -8,3 +8,4 @@ Active Radar Homing
 https://gemini.google.com/app/2055aca6f722b3f5
 - ping for echo
 
+Introduce nalgebra (and potentially sguaba ?)

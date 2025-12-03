@@ -1,16 +1,17 @@
 #![allow(dead_code, unused_variables)]
+mod simulation;
 
 fn main() {
     let target_pos = Point::new(42, 10);
 }
 
 struct Point {
-    x: i32,
-    y: i32,
+    x: u32,
+    y: u32,
 }
 
 impl Point {
-    fn new(x: i32, y: i32) -> Self {
+    fn new(x: u32, y: u32) -> Self {
         Self { x, y }
     }
 }
@@ -49,8 +50,8 @@ impl Missile {
         acceleration: u32,
     ) -> Self {
         let dir = Vector::new(
-            target_position.x - current_position.x,
-            target_position.y - current_position.y,
+            (target_position.x - current_position.x).try_into().unwrap(),
+            (target_position.y - current_position.y).try_into().unwrap(),
         );
 
         // Naive approach: Always normalize
@@ -72,7 +73,7 @@ impl Missile {
         }
 
         // We assume uniform acceleration for simplicity.
-        self.current_speed = self.current_speed + self.acceleration;
+        self.current_speed += self.acceleration;
     }
 
     fn change_direction(&mut self, x: i32, y: i32) {
