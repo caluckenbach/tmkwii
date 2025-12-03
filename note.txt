@@ -1,0 +1,10 @@
+- 2d grid
+
+Inertial Guidance System
+- target: position, no movement
+- missile: position, target-position, flight path
+
+Active Radar Homing
+https://gemini.google.com/app/2055aca6f722b3f5
+- ping for echo
+
