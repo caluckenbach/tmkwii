@@ -5,12 +5,12 @@ fn main() {
 }
 
 struct Point {
-    x: u32,
-    y: u32,
+    x: i32,
+    y: i32,
 }
 
 impl Point {
-    fn new(x: u32, y: u32) -> Self {
+    fn new(x: i32, y: i32) -> Self {
         Self { x, y }
     }
 }
@@ -26,28 +26,58 @@ impl Vector {
     }
 }
 
-struct Direction {
+struct Missile {
     /// Unit vector of the direction
-    unit: Vector,
+    direction: Vector,
     /// Speed in m/s
-    speed: u32,
+    current_speed: u32,
+    /// Maximum speed in m/s
+    max_speed: u32,
+    /// In m/s^2
+    acceleration: u32,
+
+    current_position: Point,
+    target_position: Point,
 }
 
-impl Direction {
-    fn new(x: i32, y: i32, speed: u32) -> Self {
-        // Naive approach: Always normalize
-        let unit = normalize_vector(Vector::new(x, y));
+impl Missile {
+    fn new(
+        current_position: Point,
+        target_position: Point,
+        current_speed: u32,
+        max_speed: u32,
+        acceleration: u32,
+    ) -> Self {
+        let dir = Vector::new(
+            target_position.x - current_position.x,
+            target_position.y - current_position.y,
+        );
 
-        Self { unit, speed }
+        // Naive approach: Always normalize
+        let unit = normalize_vector(dir);
+
+        Self {
+            direction: unit,
+            current_speed,
+            max_speed,
+            acceleration,
+            current_position,
+            target_position,
+        }
     }
 
     fn accelerate(&mut self, to: u32) {
-        self.speed = to;
+        if self.current_speed >= self.max_speed {
+            return;
+        }
+
+        // We assume uniform acceleration for simplicity.
+        self.current_speed = self.current_speed + self.acceleration;
     }
 
-    fn change(&mut self, x: i32, y: i32) {
+    fn change_direction(&mut self, x: i32, y: i32) {
         // Naive approach: Always normalize
-        self.unit = normalize_vector(Vector::new(x, y))
+        self.direction = normalize_vector(Vector::new(x, y))
     }
 }
 
