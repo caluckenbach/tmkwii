@@ -8,7 +8,17 @@ fn main() {
 
     let entities: Vec<Box<dyn simulation::Simulatable>> = vec![Box::new(target), Box::new(missile)];
 
-    let simulation = simulation::Simulation::new(entities);
+    let mut simulation = simulation::Simulation::new(entities);
+
+    println!("Simulation State:");
+    for i in 0..10 {
+        println!("Timestep :{}\n", simulation.timestep);
+        simulation
+            .entities
+            .iter()
+            .for_each(|e| println!("{:#?}", e.render()));
+        simulation.advance();
+    }
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -23,6 +33,7 @@ impl Point {
     }
 }
 
+#[derive(Debug)]
 struct Vector {
     x: i32,
     y: i32,
@@ -37,9 +48,7 @@ impl Vector {
 type Target = Point;
 
 impl simulation::Simulatable for Target {
-    fn happen(&self) {
-        return;
-    }
+    fn happen(&mut self) {}
 
     fn render(&self) -> simulation::Entity {
         simulation::Entity::new(*self, simulation::EntityType::Target)
@@ -69,8 +78,8 @@ impl Missile {
         acceleration: u32,
     ) -> Self {
         let dir = Vector::new(
-            (target_position.x - current_position.x).try_into().unwrap(),
-            (target_position.y - current_position.y).try_into().unwrap(),
+            target_position.x as i32 - current_position.x as i32,
+            target_position.y as i32 - current_position.y as i32,
         );
 
         // Naive approach: Always normalize
@@ -86,7 +95,7 @@ impl Missile {
         }
     }
 
-    fn accelerate(&mut self, to: u32) {
+    fn accelerate(&mut self) {
         if self.current_speed >= self.max_speed {
             return;
         }
@@ -95,19 +104,43 @@ impl Missile {
         self.current_speed += self.acceleration;
     }
 
-    fn change_direction(&mut self, x: i32, y: i32) {
+    fn update_direction(&mut self) {
+        let course = Vector::new(
+            self.target_position.x as i32 - self.current_position.x as i32,
+            self.target_position.y as i32 - self.current_position.y as i32,
+        );
         // Naive approach: Always normalize
-        self.direction = normalize_vector(Vector::new(x, y))
+        self.direction = normalize_vector(course)
+    }
+
+    fn update_position(&mut self, position: Point) {
+        self.current_position = position;
     }
 }
 
 impl simulation::Simulatable for Missile {
-    fn happen(&self) {
-        todo!()
+    fn happen(&mut self) {
+        // Move one unit towards this direction
+        let relative_speed = (self.current_speed / 64) as i32;
+        let new_position = Point::new(
+            (self.current_position.x as i32 + (self.direction.x * relative_speed)) as u32,
+            (self.current_position.y as i32 + (self.direction.y * relative_speed)) as u32,
+        );
+
+        println!(
+            "Speed: {}\nDirection: {:?}\nNew Position: {:?}",
+            self.current_speed, self.direction, new_position
+        );
+        self.current_position = new_position;
+
+        // Update speed according using acceleration
+        (*self).accelerate();
+        // Calculate adjusted distance for (target - current) vector
+        (*self).update_direction();
     }
 
     fn render(&self) -> simulation::Entity {
-        todo!()
+        simulation::Entity::new(self.current_position, simulation::EntityType::Missile)
     }
 }
 
