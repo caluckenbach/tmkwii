@@ -1,10 +1,17 @@
 #![allow(dead_code, unused_variables)]
+
 mod simulation;
 
 fn main() {
-    let target_pos = Point::new(42, 10);
+    let target = Target::new(12, 12);
+    let missile = Missile::new(Point::new(42, 42), target, 0, 858, 400);
+
+    let entities: Vec<Box<dyn simulation::Simulatable>> = vec![Box::new(target), Box::new(missile)];
+
+    let simulation = simulation::Simulation::new(entities);
 }
 
+#[derive(Debug, Clone, Copy)]
 struct Point {
     x: u32,
     y: u32,
@@ -24,6 +31,18 @@ struct Vector {
 impl Vector {
     fn new(x: i32, y: i32) -> Self {
         Self { x, y }
+    }
+}
+
+type Target = Point;
+
+impl simulation::Simulatable for Target {
+    fn happen(&self) {
+        return;
+    }
+
+    fn render(&self) -> simulation::Entity {
+        simulation::Entity::new(*self, simulation::EntityType::Target)
     }
 }
 
@@ -79,6 +98,16 @@ impl Missile {
     fn change_direction(&mut self, x: i32, y: i32) {
         // Naive approach: Always normalize
         self.direction = normalize_vector(Vector::new(x, y))
+    }
+}
+
+impl simulation::Simulatable for Missile {
+    fn happen(&self) {
+        todo!()
+    }
+
+    fn render(&self) -> simulation::Entity {
+        todo!()
     }
 }
 
