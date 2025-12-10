@@ -1,8 +1,8 @@
-use crate::Point;
+use nalgebra::Point2;
 
 pub struct Simulation {
     /// Current timestep of a running simulation
-    pub timestep: u32,
+    pub timestep: usize,
     grid: SimulationGrid,
     pub entities: Vec<Box<dyn Simulatable>>,
 }
@@ -58,12 +58,12 @@ pub enum EntityType {
 
 #[derive(Debug)]
 pub struct Entity {
-    position: Point,
+    position: Point2<f32>,
     r#type: EntityType,
 }
 
 impl Entity {
-    pub fn new(position: Point, r#type: EntityType) -> Self {
+    pub fn new(position: Point2<f32>, r#type: EntityType) -> Self {
         Self { position, r#type }
     }
 }
