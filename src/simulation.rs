@@ -1,6 +1,6 @@
-use std::collections::HashSet;
+use std::{collections::HashSet, fmt::Display};
 
-use nalgebra::Point2;
+use nalgebra::{Point2, Vector2};
 
 pub struct Simulation {
     /// Current timestep of a running simulation
@@ -30,10 +30,20 @@ impl Simulation {
         }
 
         // Advance the simulation state of all entities.
-        self.entities.iter_mut().for_each(|e| e.happen());
+        self.entities.iter_mut().enumerate().for_each(|(i, e)| {
+            let updated_entity_data = e.happen();
+            self.state[i] = SimulationEntity::new(updated_entity_data, self.state[i].state);
+        });
 
         // Find entity indices that got destroyed.
         let mut destroyed_indices: HashSet<usize> = HashSet::new();
+        let missiles = self
+            .state
+            .iter()
+            .filter(|e| e.data.r#type == EntityType::Missile);
+        // Check if something like 'split_by_predicate' exists.
+        // Partition in missiles and targets and only check if missiles hit the targets using
+        // raytracing.
         for i in 0..self.entities.len() - 1 {
             for j in i + 1..self.entities.len() {
                 let ent_one = self.state[i];
@@ -43,6 +53,7 @@ impl Simulation {
                     continue;
                 }
 
+                // TODO: Raycasting colision detection using direction, speed and current_pos
                 // TODO: Extract the epsilon.
                 if nalgebra::distance(&ent_one.data.position, &ent_two.data.position) < 0.5 {
                     destroyed_indices.insert(i);
@@ -81,12 +92,24 @@ pub enum EntityState {
 #[derive(Debug, Clone, Copy)]
 pub struct Entity {
     position: Point2<f32>,
+    direction: Option<Vector2<f32>>,
+    speed: Option<f32>,
     r#type: EntityType,
 }
 
 impl Entity {
-    pub fn new(position: Point2<f32>, r#type: EntityType) -> Self {
-        Self { position, r#type }
+    pub fn new(
+        position: Point2<f32>,
+        direction: Option<Vector2<f32>>,
+        speed: Option<f32>,
+        r#type: EntityType,
+    ) -> Self {
+        Self {
+            position,
+            r#type,
+            direction,
+            speed,
+        }
     }
 }
 
@@ -96,6 +119,16 @@ pub struct SimulationEntity {
     state: EntityState,
 }
 
+impl Display for SimulationEntity {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "Type '{:?}'\tCoordinates {:?}\tState '{:?}'",
+            self.data.r#type, self.data.position, self.state
+        )
+    }
+}
+
 impl SimulationEntity {
     pub fn new(data: Entity, state: EntityState) -> Self {
         Self { data, state }
@@ -103,6 +136,6 @@ impl SimulationEntity {
 }
 
 pub trait Simulatable {
-    fn happen(&mut self);
+    fn happen(&mut self) -> Entity;
     fn render(&self) -> Entity;
 }

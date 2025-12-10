@@ -13,12 +13,11 @@ fn main() {
     let mut simulation = simulation::Simulation::new(entities);
 
     println!("Simulation State:");
+    println!("Target at coordinates {}", target);
     for i in 0..42 {
-        println!("Timestep :{}\n", simulation.timestep);
-        simulation
-            .entities
-            .iter()
-            .for_each(|e| println!("{:#?}", e.render()));
+        println!("Timestep {}", simulation.timestep);
+        simulation.render().iter().for_each(|e| println!("{}", e));
+        println!("\n");
         simulation.advance();
     }
 }
@@ -26,10 +25,12 @@ fn main() {
 type Target = Point2<f32>;
 
 impl simulation::Simulatable for Target {
-    fn happen(&mut self) {}
+    fn happen(&mut self) -> simulation::Entity {
+        self.render()
+    }
 
     fn render(&self) -> simulation::Entity {
-        simulation::Entity::new(*self, simulation::EntityType::Target)
+        simulation::Entity::new(*self, None, None, simulation::EntityType::Target)
     }
 }
 
@@ -88,23 +89,31 @@ impl Missile {
 }
 
 impl simulation::Simulatable for Missile {
-    fn happen(&mut self) {
+    fn happen(&mut self) -> simulation::Entity {
         // Move one unit towards this direction
         let new_position = self.current_position + self.current_speed * self.direction;
 
-        println!(
-            "Speed: {}\nDirection: {:?}\nNew Position: {:?}",
-            self.current_speed, self.direction, new_position
-        );
         self.current_position = new_position;
 
         // Update speed according using acceleration
         (*self).accelerate();
         // Calculate adjusted distance for (target - current) vector
         (*self).update_direction();
+
+        simulation::Entity::new(
+            self.current_position,
+            Some(self.direction),
+            Some(self.current_speed),
+            simulation::EntityType::Missile,
+        )
     }
 
     fn render(&self) -> simulation::Entity {
-        simulation::Entity::new(self.current_position, simulation::EntityType::Missile)
+        simulation::Entity::new(
+            self.current_position,
+            Some(self.direction),
+            Some(self.current_speed),
+            simulation::EntityType::Missile,
+        )
     }
 }
