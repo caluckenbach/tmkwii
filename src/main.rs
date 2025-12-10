@@ -13,7 +13,7 @@ fn main() {
     let mut simulation = simulation::Simulation::new(entities);
 
     println!("Simulation State:");
-    for i in 0..10 {
+    for i in 0..42 {
         println!("Timestep :{}\n", simulation.timestep);
         simulation
             .entities

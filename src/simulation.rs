@@ -1,62 +1,84 @@
+use std::collections::HashSet;
+
 use nalgebra::Point2;
 
 pub struct Simulation {
     /// Current timestep of a running simulation
     pub timestep: usize,
-    grid: SimulationGrid,
+    state: SimulationEntities,
     pub entities: Vec<Box<dyn Simulatable>>,
 }
 
 impl Simulation {
     pub fn new(entities: Vec<Box<dyn Simulatable>>) -> Self {
+        let state = entities
+            .iter()
+            .map(|e| SimulationEntity::new(e.render(), EntityState::Functional))
+            .collect::<SimulationEntities>();
+
         Self {
             timestep: 0,
-            grid: SimulationGrid::default(),
+            state,
             entities,
         }
     }
 
     pub fn advance(&mut self) {
-        self.entities.iter_mut().enumerate().for_each(|(i, e)| {
-            e.happen();
-            let entity = e.render();
-            if let Some(row) = self.grid.cells.get_mut(entity.position.x as usize)
-                && let Some(cell) = row.get_mut(entity.position.y as usize)
-            {
-                *cell = Some(i);
+        if self.entities.is_empty() {
+            self.timestep += 1;
+            return;
+        }
+
+        // Advance the simulation state of all entities.
+        self.entities.iter_mut().for_each(|e| e.happen());
+
+        // Find entity indices that got destroyed.
+        let mut destroyed_indices: HashSet<usize> = HashSet::new();
+        for i in 0..self.entities.len() - 1 {
+            for j in i + 1..self.entities.len() {
+                let ent_one = self.state[i];
+                let ent_two = self.state[j];
+
+                if ent_one.data.r#type == ent_two.data.r#type {
+                    continue;
+                }
+
+                // TODO: Extract the epsilon.
+                if nalgebra::distance(&ent_one.data.position, &ent_two.data.position) < 0.5 {
+                    destroyed_indices.insert(i);
+                    destroyed_indices.insert(j);
+                }
             }
+        }
+
+        // Update state for destroyed entities
+        destroyed_indices.iter().for_each(|index| {
+            self.state[*index].state = EntityState::Destroyed;
         });
+
         self.timestep += 1;
     }
 
-    pub fn render(&self) -> SimulationGrid {
-        self.grid
+    pub fn render(&self) -> SimulationEntities {
+        self.state.clone()
     }
 }
 
-type EntityIndex = usize;
+pub type SimulationEntities = Vec<SimulationEntity>;
 
-// Not sure if i even need this. Could also be implicit.
-#[derive(Debug, Clone, Copy)]
-pub struct SimulationGrid {
-    cells: [[Option<EntityIndex>; 64]; 64],
-}
-
-impl Default for SimulationGrid {
-    fn default() -> Self {
-        Self {
-            cells: [[None; 64]; 64],
-        }
-    }
-}
-
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum EntityType {
     Missile,
     Target,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
+pub enum EntityState {
+    Functional,
+    Destroyed,
+}
+
+#[derive(Debug, Clone, Copy)]
 pub struct Entity {
     position: Point2<f32>,
     r#type: EntityType,
@@ -65,6 +87,18 @@ pub struct Entity {
 impl Entity {
     pub fn new(position: Point2<f32>, r#type: EntityType) -> Self {
         Self { position, r#type }
+    }
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct SimulationEntity {
+    data: Entity,
+    state: EntityState,
+}
+
+impl SimulationEntity {
+    pub fn new(data: Entity, state: EntityState) -> Self {
+        Self { data, state }
     }
 }
 
